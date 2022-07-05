@@ -19,4 +19,6 @@ public class UserWithPasswordDto {
     private String lastName;
 
     private String password;
+
+    private String role;
 }

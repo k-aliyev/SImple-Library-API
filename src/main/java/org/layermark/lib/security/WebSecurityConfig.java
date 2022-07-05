@@ -1,5 +1,6 @@
 package org.layermark.lib.security;
 
+import org.layermark.lib.model.Permission;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
@@ -53,9 +54,12 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         //TODO:enable csrf after postman checks
         http.csrf().disable()
-                .authorizeRequests().antMatchers("/create/**").hasRole("ADMIN").and()
-                .authorizeRequests().antMatchers("/**").hasRole("USER").and()
-                .authorizeRequests().antMatchers("/sign-up", "/sign-in").permitAll()
+                .authorizeRequests()
+                .antMatchers("/sign-up", "/sign-in").permitAll()
+                .antMatchers("/admin/**").hasAuthority(Permission.DEVELOPERS_WRITE.getPermission())
+                .antMatchers("/**").hasAuthority(Permission.DEVELOPERS_READ.getPermission())
+
+
                 .anyRequest().authenticated().and()
                 .exceptionHandling().authenticationEntryPoint(jwtAuthenticationEntryPoint).and().sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS);

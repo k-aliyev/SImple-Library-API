@@ -26,8 +26,7 @@ public class JwtUserDetailsService implements UserDetailsService {
         Optional<org.layermark.lib.model.User> user = userRepository.findByEmail(username);
 
         if (user.isPresent()) {
-            return new User(user.get().getEmail(), user.get().getPassword(),
-                    new ArrayList<>());
+            return new User(user.get().getEmail(), user.get().getPassword(), user.get().getRole().getAuthorities());
         } else {
             throw new UsernameNotFoundException("User not found with email: " + username);
         }

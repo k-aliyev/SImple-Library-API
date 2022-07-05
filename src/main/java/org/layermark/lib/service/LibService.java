@@ -4,16 +4,14 @@ import org.layermark.lib.dto.*;
 import org.layermark.lib.exception.BookIsNotAvailableException;
 import org.layermark.lib.exception.EntityAlreadyExistsException;
 import org.layermark.lib.exception.EntityNotFoundException;
-import org.layermark.lib.model.Author;
-import org.layermark.lib.model.Book;
-import org.layermark.lib.model.Reservation;
-import org.layermark.lib.model.User;
+import org.layermark.lib.model.*;
 import org.layermark.lib.repository.AuthorRepository;
 import org.layermark.lib.repository.BookRepository;
 import org.layermark.lib.repository.ReservationRepository;
 import org.layermark.lib.repository.UserRepository;
 import org.modelmapper.ModelMapper;
 //import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
@@ -28,18 +26,20 @@ public class LibService {
     private final ReservationRepository reservationRepository;
     private final ModelMapper modelMapper;
 
-
+    private final BCryptPasswordEncoder bCryptPasswordEncoder;
     private final int noOfDaysRent= 14;
+
 
 //    private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
-    public LibService(BookRepository bookRepository, AuthorRepository authorRepository, UserRepository userRepository, ReservationRepository reservationRepository, ModelMapper modelMapper) {
+    public LibService(BookRepository bookRepository, AuthorRepository authorRepository, UserRepository userRepository, ReservationRepository reservationRepository, ModelMapper modelMapper, BCryptPasswordEncoder bCryptPasswordEncoder) {
         this.bookRepository = bookRepository;
         this.authorRepository = authorRepository;
         this.userRepository = userRepository;
         this.reservationRepository = reservationRepository;
         this.modelMapper = modelMapper;
 //        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
+        this.bCryptPasswordEncoder = bCryptPasswordEncoder;
     }
 
     public List<BookDto> getAllBooks(){
@@ -67,6 +67,7 @@ public class LibService {
                         .firstName(user.getFirstName())
                         .lastName(user.getLastName())
                         .email(user.getEmail())
+                        .role(user.getRole().name())
                         .build()));
         return userDtos;
     }
@@ -114,56 +115,58 @@ public class LibService {
     }
 
     @Transactional
-    public Boolean registerUser(UserWithPasswordDto userWithPasswordDto) throws RuntimeException {
+    public Boolean registerUser(RegistrationRequest registrationRequest) throws RuntimeException {
 
-        List<User> userList = userRepository.findByEmail(userWithPasswordDto.getEmail());
-        if (userList.size() > 0) {
+        Optional<User> existingUser = userRepository.findByEmail(registrationRequest.getEmail());
+        if (existingUser.isPresent()) {
             throw new EntityAlreadyExistsException("User with this email already exists!");
         }
         User user = new User();
-        userWithPasswordDto.setPassword(userWithPasswordDto.getPassword());
-        user.setEmail(userWithPasswordDto.getEmail());
-        user.setFirstName(userWithPasswordDto.getFirstName());
-        user.setLastName(userWithPasswordDto.getLastName());
-        user.setPassword(userWithPasswordDto.getPassword());
+
+        user.setEmail(registrationRequest.getEmail());
+        user.setFirstName(registrationRequest.getFirstName());
+        user.setLastName(registrationRequest.getLastName());
+        user.setRole(Role.getRoleByName(registrationRequest.getRole()));
+        user.setPassword(bCryptPasswordEncoder.encode(registrationRequest.getPassword()));
         userRepository.save(user);
         return true;
 
     }
 
-    public BookDto saveBook(BookDto bookDto){
-        List<Book> bookChecked = bookRepository.findByName(bookDto.getName().trim());
+    public BookDto createBook(NewBookDto newBookDto){
+        List<Book> bookChecked = bookRepository.findByName(newBookDto.getName().trim());
         if (bookChecked.size() > 0) {
             throw new EntityAlreadyExistsException("This Book Already Exists!");
         }
 
-        Optional<Author> authorOpt = authorRepository.findById(bookDto.getAuthorId());
-        if (!authorOpt.isPresent() && authorOpt.get().getId() != bookDto.getAuthorId()) {
+        Optional<Author> authorOpt = authorRepository.findById(newBookDto.getAuthorId());
+        if (!authorOpt.isPresent() && authorOpt.get().getId() != newBookDto.getAuthorId()) {
             throw new EntityNotFoundException("Not valid author Id!");
         }
 
-        Book book = modelMapper.map(bookDto, Book.class);
+        newBookDto.setAvailable(true);
+        Book book = modelMapper.map(newBookDto, Book.class);
         book.setAuthor(authorOpt.get());
         bookRepository.save(book);
 
-        bookDto.setId(book.getId());
+        BookDto bookDto = new BookDto(book.getId(), book.getName(), book.getEdition(), book.getPublisher(), book.isAvailable(), authorOpt.get().getId());
 
-        bookDto.setAuthorId(authorOpt.get().getId());
         return bookDto;
 
     }
 
-    public AuthorDto saveAuthor(AuthorDto authorDto){
+    public AuthorDto createAuthor(NewAuthorDto newAuthorDto){
 
-        Optional<Author> authorOpt = authorRepository.findByFirstNameAndLastNameLike(authorDto.getFirstName(), authorDto.getLastName());
+        Optional<Author> authorOpt = authorRepository.findByFirstNameAndLastNameLike(newAuthorDto.getFirstName(), newAuthorDto.getLastName());
         if (authorOpt.isPresent()) {
             throw new EntityAlreadyExistsException("This author already exists!");
         }
 
-        Author author = modelMapper.map(authorDto, Author.class);
+        Author author = modelMapper.map(newAuthorDto, Author.class);
         authorRepository.save(author);
 
-        authorDto.setId(author.getId());
+        AuthorDto authorDto = new AuthorDto(author.getId(), author.getFirstName(), author.getLastName());
+
         return authorDto;
 
     }

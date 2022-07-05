@@ -25,6 +25,10 @@ public class User {
 
     private String lastName;
 
+    @Enumerated(value = EnumType.STRING)
+    @Column(name = "role")
+    private Role role;
+
     @OneToMany(mappedBy = "user")
     List<Reservation> reservations;
 }

@@ -61,7 +61,7 @@ public class LibController {
                 .body(libService.getAllReservations());
     }
 
-    @PostMapping("/create/book")
+    @PostMapping("/admin/save-book")
     public ResponseEntity createBook(@RequestBody NewBookDto newBookDto)  {
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -69,7 +69,7 @@ public class LibController {
                 .body(libService.createBook(newBookDto));
     }
 
-    @PostMapping("/create/author")
+    @PostMapping("/admin/save-author")
     public ResponseEntity createAuthor(@RequestBody NewAuthorDto newAuthorDto)  {
         return ResponseEntity
                 .status(HttpStatus.OK)
@@ -103,8 +103,8 @@ public class LibController {
     }
 
     @RequestMapping(value = "/sign-up", method = RequestMethod.POST)
-    public ResponseEntity<Boolean> signUp(@RequestBody RegistirationRequest registirationRequest) throws Exception {
-        Boolean result = libService.registerUser(registirationRequest);
+    public ResponseEntity<Boolean> signUp(@RequestBody RegistrationRequest registrationRequest) throws Exception {
+        Boolean result = libService.registerUser(registrationRequest);
         return ResponseEntity.ok(result);
     }
 
